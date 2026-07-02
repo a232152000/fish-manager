@@ -233,6 +233,7 @@
           <span><svg class="gray" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>該餵魚</span>
           <span><svg class="gold" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>已餵魚</span>
         </div>
+        <div id="calDebug" style="margin-top:12px;font-size:11px;color:#7c8b93;word-break:break-all;background:#f4fafc;border-radius:8px;padding:8px;"></div>
       </div>
     </section>
   </div>
@@ -403,8 +404,13 @@
         checkinSet = {};
         (data.checkins || []).forEach(function (d) { checkinSet[d] = true; });
         renderCalendar();
+        // DEBUG：把原始資料印出來
+        var dbg = document.getElementById('calDebug');
+        if (dbg) dbg.textContent = 'DEBUG 原始資料：' + JSON.stringify(data);
       }).catch(function (err) {
         toast('讀取日曆失敗：' + err);
+        var dbg = document.getElementById('calDebug');
+        if (dbg) dbg.textContent = 'DEBUG 錯誤：' + err;
       });
     }
     function changeMonth(delta) {
