@@ -359,12 +359,15 @@
     function loadSettings() {
       api('getSettings').then(function (d) {
         var s = d.settings;
-        if (s) {
-          document.getElementById('startDate').value = s.startDate;
-          document.getElementById('intervalDays').value = s.intervalDays;
+        if (s && s.startDate) {
+          // 只取 yyyy-MM-dd（萬一回傳帶時間，date 欄位才吃得下）
+          document.getElementById('startDate').value = String(s.startDate).slice(0, 10);
+          document.getElementById('intervalDays').value = s.intervalDays || 1;
         } else if (!document.getElementById('startDate').value) {
           document.getElementById('startDate').value = new Date().toISOString().slice(0, 10);
         }
+      }).catch(function (err) {
+        toast('讀取設定失敗：' + err);
       });
     }
     function doSaveSettings() {
