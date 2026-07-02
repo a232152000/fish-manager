@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <base target="_top">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ocean-1: #2bb6c9;
+      --ocean-2: #1f8fb0;
+      --gold: #f6b93b;
+      --gold-2: #e59a1e;
+      --gray-fish: #c3ced6;
+      --ink: #22333b;
+      --muted: #7c8b93;
+      --bg: #eaf7fb;
+      --card: #ffffff;
+      --line: #eef3f5;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: 'Noto Sans TC', -apple-system, system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #d6f0f7 0%, #eaf7fb 30%, #f6fdff 100%);
+      background-attachment: fixed;
+      padding-bottom: 76px;
+      overflow-x: hidden;
+    }
+    .app { max-width: 480px; margin: 0 auto; padding: 20px 18px 8px; }
+
+    .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .topbar .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--ocean-1), var(--ocean-2));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 14px rgba(31,143,176,.35);
+    }
+    .topbar .logo svg { width: 26px; height: 26px; color: #fff; }
+    .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+    .topbar .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+    .card {
+      background: var(--card); border-radius: 22px; padding: 22px;
+      box-shadow: 0 10px 30px rgba(31,143,176,.08);
+    }
+    .view { display: none; animation: fade .25s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ---- 打卡頁 ---- */
+    .checkin-wrap { text-align: center; padding: 8px 0 4px; }
+    .checkin-fish {
+      width: 120px; height: 120px; margin: 6px auto 4px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .checkin-fish svg { width: 100%; height: 100%; color: var(--ocean-1); }
+    .float { animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+    .checkin-title { font-size: 20px; font-weight: 700; margin: 10px 0 4px; }
+    .checkin-desc { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+    .btn {
+      border: none; border-radius: 16px; font-family: inherit; font-weight: 700;
+      cursor: pointer; transition: transform .1s ease, box-shadow .2s ease;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      width: 100%; padding: 16px; font-size: 17px; color: #fff;
+      background: linear-gradient(135deg, var(--ocean-1), var(--ocean-2));
+      box-shadow: 0 10px 22px rgba(31,143,176,.35);
+    }
+    .btn-primary:disabled { opacity: .55; }
+    .last-checkin {
+      margin-top: 18px; font-size: 13px; color: var(--muted);
+      background: #f4fafc; border-radius: 12px; padding: 12px;
+    }
+
+    /* ---- 設定頁 ---- */
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+    .field input {
+      width: 100%; padding: 14px; font-size: 16px; font-family: inherit;
+      border: 1.5px solid var(--line); border-radius: 14px; background: #fbfdfe;
+      color: var(--ink);
+    }
+    .field input:focus { outline: none; border-color: var(--ocean-1); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .stepper { display: flex; align-items: center; gap: 10px; }
+    .stepper button {
+      width: 48px; height: 48px; border-radius: 14px; border: 1.5px solid var(--line);
+      background: #fff; font-size: 22px; color: var(--ocean-2); font-weight: 700; cursor: pointer;
+    }
+    .stepper input { text-align: center; }
+
+    /* ---- 行事曆頁 ---- */
+    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .cal-head .month { font-size: 18px; font-weight: 700; }
+    .cal-nav {
+      width: 40px; height: 40px; border-radius: 12px; border: none; cursor: pointer;
+      background: #f0f8fa; color: var(--ocean-2); font-size: 18px; font-weight: 700;
+    }
+    .weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .weekdays div { text-align: center; font-size: 12px; color: var(--muted); padding: 6px 0; font-weight: 500; }
+    .day {
+      aspect-ratio: 1 / 1; border-radius: 12px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 13px; position: relative;
+      color: var(--ink);
+    }
+    .day.other { color: #cdd8de; }
+    .day.today { background: #eaf7fb; font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--ocean-1); }
+    .day .num { line-height: 1; }
+    .day .fish { width: 22px; height: 16px; margin-top: 3px; }
+    .day .fish.gray { color: var(--gray-fish); }
+    .day .fish.gold { color: var(--gold); filter: drop-shadow(0 1px 2px rgba(230,154,30,.5)); }
+    .legend { display: flex; justify-content: center; gap: 22px; margin-top: 18px; font-size: 13px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend svg { width: 22px; height: 16px; }
+    .legend .gray { color: var(--gray-fish); }
+    .legend .gold { color: var(--gold); }
+    .no-setting { text-align: center; color: var(--muted); font-size: 14px; padding: 10px 0 4px; }
+
+    /* ---- 底部 Tab ---- */
+    .tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--line); display: flex;
+      max-width: 480px; margin: 0 auto; z-index: 10;
+    }
+    .tab {
+      flex: 1; border: none; background: none; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; color: var(--muted); font-family: inherit; font-size: 11px;
+    }
+    .tab svg { width: 24px; height: 24px; }
+    .tab.active { color: var(--ocean-2); }
+
+    /* ---- Toast / Loading ---- */
+    .toast {
+      position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 14px;
+      font-size: 14px; opacity: 0; transition: all .3s ease; pointer-events: none; z-index: 20;
+      max-width: 90%; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .loader {
+      position: fixed; inset: 0; background: #eaf7fb; display: flex;
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .loader svg { width: 60px; height: 60px; color: var(--ocean-1); }
+  </style>
+</head>
+<body>
+  <!-- 開場載入畫面 -->
+  <div class="loader" id="loader">
+    <div style="text-align:center">
+      <svg class="float" viewBox="0 0 64 40" fill="currentColor" style="width:60px;height:60px"><use href="#fish"/></svg>
+      <div id="loaderMsg" style="margin-top:16px;font-size:13px;color:#1f8fb0">載入中…</div>
+    </div>
+  </div>
+
+  <!-- 可重用的小魚圖形 -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="fish" viewBox="0 0 64 40">
+      <ellipse cx="26" cy="20" rx="21" ry="13"/>
+      <polygon points="43,20 63,7 63,33"/>
+      <circle cx="16" cy="15" r="3" fill="#fff"/>
+      <circle cx="15.2" cy="14.5" r="1.4" fill="#22333b"/>
+    </symbol>
+  </svg>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="logo"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
+      <div>
+        <h1>喂魚小幫手</h1>
+        <div class="sub" id="greeting">哈囉！</div>
+      </div>
+    </div>
+
+    <!-- 功能一：打卡 -->
+    <section class="view" id="view-checkin">
+      <div class="card checkin-wrap">
+        <div class="checkin-fish float"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
+        <div class="checkin-title">今天餵魚了嗎？</div>
+        <div class="checkin-desc">點下按鈕，幫魚兒記錄一餐 🐟</div>
+        <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">餵魚打卡</button>
+        <div class="last-checkin" id="lastCheckin" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- 功能二：設定 -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <div class="field">
+          <label>開始計算日期</label>
+          <input type="date" id="startDate">
+          <div class="hint">從這天開始，依間隔天數推算餵魚日</div>
+        </div>
+        <div class="field">
+          <label>餵魚間隔（天）</label>
+          <div class="stepper">
+            <button type="button" onclick="stepInterval(-1)">−</button>
+            <input type="number" id="intervalDays" value="2" min="1" inputmode="numeric">
+            <button type="button" onclick="stepInterval(1)">＋</button>
+          </div>
+          <div class="hint">例如設 2，代表每 2 天要餵一次</div>
+        </div>
+        <button class="btn btn-primary" id="saveBtn" onclick="doSaveSettings()">儲存設定</button>
+      </div>
+    </section>
+
+    <!-- 功能三：行事曆 -->
+    <section class="view" id="view-calendar">
+      <div class="card">
+        <div class="cal-head">
+          <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+          <div class="month" id="calMonth"></div>
+          <button class="cal-nav" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="weekdays">
+          <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div class="days" id="calDays"></div>
+        <div class="no-setting" id="noSetting" style="display:none">尚未設定餵魚計畫，先到「設定」頁設定吧！</div>
+        <div class="legend">
+          <span><svg class="gray" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>該餵魚</span>
+          <span><svg class="gold" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>已餵魚</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部 Tab -->
+  <nav class="tabbar">
+    <button class="tab" data-page="checkin" onclick="switchTab('checkin')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      打卡
+    </button>
+    <button class="tab" data-page="settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      設定
+    </button>
+    <button class="tab" data-page="calendar" onclick="switchTab('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      日曆
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    // ===== 需要填的兩個設定 =====
+    var LIFF_ID = '2010578777-0CzBWulm';
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbwJD04C_saCnQIUJJkcC4XTsKcWCfw1RlQoaFSIDCO9FP7gdfjzDvYktlOgyWLHOCMF/exec';  // GAS 部署後的 /exec 網址
+    // ============================
+
+    var INITIAL_PAGE = new URLSearchParams(location.search).get('page') || 'checkin';
+    var userId = null;
+
+    // 呼叫 GAS API（用 text/plain 送 JSON，避開 CORS preflight）
+    function api(action, payload) {
+      var body = Object.assign({ action: action, userId: userId }, payload || {});
+      return fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (!res.ok) throw new Error(res.error || '未知錯誤');
+        return res.data;
+      });
+    }
+
+    function toast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function () { t.classList.remove('show'); }, 2200);
+    }
+
+    function setMsg(m) { var el = document.getElementById('loaderMsg'); if (el) el.innerHTML = m; }
+
+    // ---- 啟動：LIFF 初始化 → 取得 userId ----
+    (function start() {
+      if (typeof liff === 'undefined') {
+        setMsg('❌ LIFF SDK 沒有載入成功<br>（可能是網路或被擋）');
+        return;
+      }
+      var framed = (window.self !== window.top);
+      setMsg('LIFF_ID = ' + LIFF_ID + '<br>是否在 iframe 內：' + framed + '<br>初始化中…');
+
+      // 超時偵測：init 若 12 秒沒回應就報告
+      var timedOut = false;
+      var timer = setTimeout(function () {
+        timedOut = true;
+        setMsg('⏱️ init 逾時（12 秒沒回應）<br>是否在 iframe 內：' + framed +
+               '<br>→ 這通常是 GAS iframe 造成的');
+      }, 12000);
+
+      liff.init({ liffId: LIFF_ID }).then(function () {
+        clearTimeout(timer);
+        if (timedOut) return;
+        setMsg('初始化成功，取得使用者資料…');
+        if (!liff.isLoggedIn()) {
+          setMsg('尚未登入，導向 LINE 登入…');
+          liff.login();
+          return null;
+        }
+        return liff.getProfile();
+      }).then(function (profile) {
+        if (!profile) return; // 導向登入中
+        userId = profile.userId;
+        document.getElementById('greeting').textContent = '哈囉，' + (profile.displayName || '朋友') + '！';
+        document.getElementById('loader').style.display = 'none';
+        switchTab(INITIAL_PAGE || 'checkin');
+      }).catch(function (err) {
+        clearTimeout(timer);
+        setMsg('❌ LIFF 錯誤：<br>' + (err && err.message ? err.message : err));
+      });
+    })();
+
+    // ---- Tab 切換 ----
+    function switchTab(page) {
+      ['checkin', 'settings', 'calendar'].forEach(function (p) {
+        document.getElementById('view-' + p).classList.toggle('active', p === page);
+      });
+      document.querySelectorAll('.tab').forEach(function (t) {
+        t.classList.toggle('active', t.dataset.page === page);
+      });
+      if (page === 'settings') loadSettings();
+      if (page === 'calendar') loadCalendar();
+    }
+
+    // ---- 功能一：打卡 ----
+    function doCheckin() {
+      if (!userId) return;
+      var btn = document.getElementById('checkinBtn');
+      btn.disabled = true; btn.textContent = '記錄中…';
+      api('checkin').then(function (res) {
+        btn.disabled = false; btn.textContent = '餵魚打卡';
+        toast(res.alreadyCheckedToday ? '今天已經餵過囉，再記一筆！' : '打卡成功，魚兒吃飽飽 🐟');
+        var box = document.getElementById('lastCheckin');
+        box.style.display = 'block';
+        box.textContent = '最近一次打卡：' + res.date + ' ' + res.time;
+      }).catch(function (err) {
+        btn.disabled = false; btn.textContent = '餵魚打卡';
+        toast('打卡失敗：' + err);
+      });
+    }
+
+    // ---- 功能二：設定 ----
+    function stepInterval(d) {
+      var input = document.getElementById('intervalDays');
+      var v = (parseInt(input.value, 10) || 1) + d;
+      if (v < 1) v = 1;
+      input.value = v;
+    }
+    function loadSettings() {
+      api('getSettings').then(function (d) {
+        var s = d.settings;
+        if (s) {
+          document.getElementById('startDate').value = s.startDate;
+          document.getElementById('intervalDays').value = s.intervalDays;
+        } else if (!document.getElementById('startDate').value) {
+          document.getElementById('startDate').value = new Date().toISOString().slice(0, 10);
+        }
+      });
+    }
+    function doSaveSettings() {
+      if (!userId) return;
+      var startDate = document.getElementById('startDate').value;
+      var interval = document.getElementById('intervalDays').value;
+      var btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = '儲存中…';
+      api('saveSettings', { startDate: startDate, intervalDays: interval }).then(function () {
+        btn.disabled = false; btn.textContent = '儲存設定';
+        toast('設定已儲存 ✅');
+      }).catch(function (err) {
+        btn.disabled = false; btn.textContent = '儲存設定';
+        toast('儲存失敗：' + err);
+      });
+    }
+
+    // ---- 功能三：行事曆 ----
+    var calYear, calMonth; // 目前顯示的年月
+    var feedSettings = null;      // { startDate, intervalDays }
+    var checkinSet = {};          // { 'yyyy-MM-dd': true }
+
+    function loadCalendar() {
+      var now = new Date();
+      if (calYear === undefined) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
+      api('getCalendarData').then(function (data) {
+        feedSettings = data.settings;
+        checkinSet = {};
+        (data.checkins || []).forEach(function (d) { checkinSet[d] = true; });
+        renderCalendar();
+      });
+    }
+    function changeMonth(delta) {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    }
+    function fmt(y, m, d) {
+      return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    function isFeedDay(dateObj) {
+      if (!feedSettings || !feedSettings.startDate) return false;
+      var parts = feedSettings.startDate.split('-');
+      var start = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+      var interval = feedSettings.intervalDays || 1;
+      var diff = Math.round((dateObj - start) / 86400000);
+      return diff >= 0 && diff % interval === 0;
+    }
+    function fishSVG(cls) {
+      return '<svg class="fish ' + cls + '" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>';
+    }
+    function renderCalendar() {
+      document.getElementById('calMonth').textContent = calYear + ' 年 ' + (calMonth + 1) + ' 月';
+      document.getElementById('noSetting').style.display =
+        (feedSettings && feedSettings.startDate) ? 'none' : 'block';
+
+      var first = new Date(calYear, calMonth, 1);
+      var startWeekday = first.getDay();
+      var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      var today = new Date(); today.setHours(0, 0, 0, 0);
+
+      var html = '';
+      // 前置空白（補上個月，淡色顯示）
+      var prevDays = new Date(calYear, calMonth, 0).getDate();
+      for (var i = startWeekday - 1; i >= 0; i--) {
+        html += '<div class="day other"><span class="num">' + (prevDays - i) + '</span></div>';
+      }
+      // 當月
+      for (var d = 1; d <= daysInMonth; d++) {
+        var cur = new Date(calYear, calMonth, d);
+        var key = fmt(calYear, calMonth, d);
+        var cls = 'day';
+        if (cur.getTime() === today.getTime()) cls += ' today';
+        var fish = '';
+        if (checkinSet[key]) fish = fishSVG('gold');       // 已餵魚（金魚，最優先）
+        else if (isFeedDay(cur)) fish = fishSVG('gray');   // 該餵魚（灰魚）
+        html += '<div class="' + cls + '"><span class="num">' + d + '</span>' + fish + '</div>';
+      }
+      // 後置補白
+      var cellsUsed = startWeekday + daysInMonth;
+      var trailing = (7 - (cellsUsed % 7)) % 7;
+      for (var j = 1; j <= trailing; j++) {
+        html += '<div class="day other"><span class="num">' + j + '</span></div>';
+      }
+      document.getElementById('calDays').innerHTML = html;
+    }
+  </script>
+</body>
+</html>
