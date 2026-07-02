@@ -394,6 +394,8 @@
         checkinSet = {};
         (data.checkins || []).forEach(function (d) { checkinSet[d] = true; });
         renderCalendar();
+      }).catch(function (err) {
+        toast('讀取日曆失敗：' + err);
       });
     }
     function changeMonth(delta) {
@@ -414,7 +416,13 @@
       return diff >= 0 && diff % interval === 0;
     }
     function fishSVG(cls) {
-      return '<svg class="fish ' + cls + '" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>';
+      // 直接畫完整圖形（不用 <use> 引用，避免 LINE 內建瀏覽器解析不到）
+      return '<svg class="fish ' + cls + '" viewBox="0 0 64 40">' +
+        '<ellipse cx="26" cy="20" rx="21" ry="13" fill="currentColor"/>' +
+        '<polygon points="43,20 63,7 63,33" fill="currentColor"/>' +
+        '<circle cx="16" cy="15" r="3" fill="#fff"/>' +
+        '<circle cx="15.2" cy="14.5" r="1.4" fill="#22333b"/>' +
+        '</svg>';
     }
     function renderCalendar() {
       document.getElementById('calMonth').textContent = calYear + ' 年 ' + (calMonth + 1) + ' 月';
