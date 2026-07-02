@@ -81,11 +81,16 @@
     .field { margin-bottom: 18px; }
     .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
     .field input {
-      width: 100%; padding: 14px; font-size: 16px; font-family: inherit;
+      width: 100%; min-width: 0; max-width: 100%; padding: 14px;
+      font-size: 16px; font-family: inherit;
       border: 1.5px solid var(--line); border-radius: 14px; background: #fbfdfe;
       color: var(--ink);
+      -webkit-appearance: none; appearance: none;
     }
     .field input:focus { outline: none; border-color: var(--ocean-1); }
+    /* iOS 日期欄位：避免內部控制項把寬度撐爆 */
+    .field input[type="date"] { display: block; }
+    .field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .stepper { display: flex; align-items: center; gap: 10px; }
     .stepper button {
