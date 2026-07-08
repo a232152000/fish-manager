@@ -85,28 +85,28 @@
       background: #f4fafc; border-radius: 12px; padding: 12px;
     }
     /* 打卡頁兩張卡 */
-    .act-card { text-align: center; }
-    .act-card + .act-card { margin-top: 16px; }
-    .act-icon { width: 76px; height: 76px; margin: 2px auto 8px; }
+    .act-card { text-align: center; padding: 18px; }
+    .act-card + .act-card { margin-top: 14px; }
+    .act-icon { width: 52px; height: 52px; margin: 0 auto 6px; }
     .act-icon svg { width: 100%; height: 100%; }
     .act-icon.fish-c { color: var(--ocean-1); }
     .act-icon.plant-c { color: var(--plant); }
-    .act-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
-    /* 年月日滾輪選擇器 */
-    .wheel { position: relative; display: flex; gap: 8px; height: 150px; margin-bottom: 16px; }
+    .act-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    /* 年月日滾輪選擇器（3 排：上一個、選中、下一個）*/
+    .wheel { position: relative; display: flex; gap: 8px; height: 90px; margin-bottom: 14px; }
     .wheel-band {
-      position: absolute; left: 0; right: 0; top: 60px; height: 30px;
+      position: absolute; left: 0; right: 0; top: 30px; height: 30px;
       background: #eef7fa; border-radius: 10px; pointer-events: none; z-index: 0;
     }
     .wheel-col {
       flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch; text-align: center;
       scrollbar-width: none; position: relative; z-index: 1;
-      -webkit-mask-image: linear-gradient(180deg, transparent, #000 32%, #000 68%, transparent);
-              mask-image: linear-gradient(180deg, transparent, #000 32%, #000 68%, transparent);
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 34%, #000 66%, transparent);
+              mask-image: linear-gradient(180deg, transparent, #000 34%, #000 66%, transparent);
     }
     .wheel-col::-webkit-scrollbar { display: none; }
-    .wheel-pad { height: 60px; }
+    .wheel-pad { height: 30px; }
     .wheel-item {
       height: 30px; line-height: 30px; scroll-snap-align: center;
       font-size: 16px; color: var(--muted); font-variant-numeric: tabular-nums;
