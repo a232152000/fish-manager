@@ -1,41 +1,43 @@
 /**
  * 喂魚小幫手 — Google Apps Script 後端（JSON API）
  * 前端放在 GitHub Pages，透過 fetch 呼叫這裡。
- * 資料存於指定試算表的兩個分頁：
- *   checkins：userId | timestamp(ISO) | date(yyyy-MM-dd)
- *   settings：userId | startDate(yyyy-MM-dd) | intervalDays | updatedAt(ISO)
+ *
+ * 支援兩種類型 type：
+ *   fish （餵魚）  → 分頁 checkins / settings
+ *   water（澆花）  → 分頁 waterCheckins / waterSettings
+ * 每個分頁欄位：
+ *   checkin ：userId | timestamp(ISO) | date(yyyy-MM-dd)
+ *   settings：userId | startDate | intervalDays | updatedAt(ISO)
  */
 
 // 指定要寫入的 Google Sheet ID。
-// 打開試算表看網址：docs.google.com/spreadsheets/d/【這一段就是 ID】/edit
 var SHEET_ID = '1FNkH2wPSOWe9cLnAHqnfWGexz0QenEF-Z5tLLFAG6bw';
 
-var CHECKIN_SHEET = 'checkins';
-var SETTINGS_SHEET = 'settings';
+var SHEETS = {
+  fish:  { checkin: 'checkins',      settings: 'settings' },
+  water: { checkin: 'waterCheckins', settings: 'waterSettings' }
+};
 
-/** 打開 /exec 直接用瀏覽器測試時，回一句話確認 API 活著 */
+/** 用瀏覽器打開 /exec 時回一句話確認 API 活著 */
 function doGet() {
   return json_({ ok: true, msg: '喂魚小幫手 API 運作中' });
 }
 
-/**
- * 前端所有請求都走這裡（POST，body 為 JSON 字串）。
- * body 格式：{ action, userId, ...payload }
- * 用 text/plain 送出可避開 CORS preflight。
- */
+/** 前端所有請求走這裡（POST，body 為 JSON 字串，用 text/plain 避開 CORS preflight） */
 function doPost(e) {
   try {
     var req = JSON.parse(e.postData.contents);
     var action = req.action;
     var userId = req.userId;
+    var type = req.type || 'fish';
     var result;
 
     if (action === 'checkin') {
-      result = recordCheckin(userId);
+      result = recordCheckin(userId, type);
     } else if (action === 'getSettings') {
-      result = { settings: getSettings(userId) };
+      result = { settings: getSettings(userId, type) };
     } else if (action === 'saveSettings') {
-      result = saveSettings(userId, req.startDate, req.intervalDays);
+      result = saveSettings(userId, type, req.startDate, req.intervalDays);
     } else if (action === 'getCalendarData') {
       result = getCalendarData(userId);
     } else {
@@ -47,7 +49,6 @@ function doPost(e) {
   }
 }
 
-/** 統一輸出 JSON */
 function json_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
@@ -65,24 +66,23 @@ function getSheet_(name, headers) {
   return sheet;
 }
 
-/** 把 Sheet 值（可能是 Date 物件或字串）統一轉成 yyyy-MM-dd */
+/** 把 Sheet 值（Date 物件或字串）統一轉字串 */
 function toDateStr_(value) {
-  if (value instanceof Date) {
+  if (value && typeof value.getTime === 'function') {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
   return String(value);
 }
 
-/** 功能一：餵魚打卡 —— 記錄一筆 log */
-function recordCheckin(userId) {
+/** 打卡（餵魚或澆花） */
+function recordCheckin(userId, type) {
   if (!userId) throw new Error('缺少使用者資訊');
+  type = type || 'fish';
   var tz = Session.getScriptTimeZone();
   var now = new Date();
   var dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
 
-  var sheet = getSheet_(CHECKIN_SHEET, ['userId', 'timestamp', 'date']);
-
-  // 判斷今天是否已打過卡
+  var sheet = getSheet_(SHEETS[type].checkin, ['userId', 'timestamp', 'date']);
   var data = sheet.getDataRange().getValues();
   var already = false;
   for (var i = 1; i < data.length; i++) {
@@ -91,7 +91,6 @@ function recordCheckin(userId) {
       break;
     }
   }
-
   sheet.appendRow([userId, now.toISOString(), dateStr]);
 
   return {
@@ -102,30 +101,29 @@ function recordCheckin(userId) {
   };
 }
 
-/** 功能二：讀取使用者設定（給設定頁預填） */
-function getSettings(userId) {
+/** 讀取設定 */
+function getSettings(userId, type) {
   if (!userId) throw new Error('缺少使用者資訊');
-  var sheet = getSheet_(SETTINGS_SHEET, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
+  type = type || 'fish';
+  var sheet = getSheet_(SHEETS[type].settings, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]) === userId) {
-      return {
-        startDate: toDateStr_(data[i][1]),
-        intervalDays: Number(data[i][2]) || 1
-      };
+      return { startDate: toDateStr_(data[i][1]), intervalDays: Number(data[i][2]) || 1 };
     }
   }
   return null;
 }
 
-/** 功能二：儲存設定（同一 userId 覆蓋更新） */
-function saveSettings(userId, startDate, intervalDays) {
+/** 儲存設定（同一 userId 覆蓋更新） */
+function saveSettings(userId, type, startDate, intervalDays) {
   if (!userId) throw new Error('缺少使用者資訊');
   if (!startDate) throw new Error('請選擇開始日期');
+  type = type || 'fish';
   var interval = parseInt(intervalDays, 10);
   if (!interval || interval < 1) throw new Error('間隔天數需為 1 以上');
 
-  var sheet = getSheet_(SETTINGS_SHEET, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
+  var sheet = getSheet_(SHEETS[type].settings, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
   var data = sheet.getDataRange().getValues();
   var now = new Date().toISOString();
   var row = -1;
@@ -138,15 +136,12 @@ function saveSettings(userId, startDate, intervalDays) {
   } else {
     sheet.getRange(row, 1, 1, 4).setValues(values);
   }
-  return { ok: true, startDate: startDate, intervalDays: interval };
+  return { ok: true };
 }
 
-/** 功能三：行事曆一次拿齊設定 + 打卡日期清單 */
-function getCalendarData(userId) {
-  if (!userId) throw new Error('缺少使用者資訊');
-  var settings = getSettings(userId);
-
-  var sheet = getSheet_(CHECKIN_SHEET, ['userId', 'timestamp', 'date']);
+/** 取某類型的所有打卡日期（去重） */
+function getCheckinDates_(userId, type) {
+  var sheet = getSheet_(SHEETS[type].checkin, ['userId', 'timestamp', 'date']);
   var data = sheet.getDataRange().getValues();
   var seen = {};
   var dates = [];
@@ -156,5 +151,14 @@ function getCalendarData(userId) {
       if (!seen[d]) { seen[d] = true; dates.push(d); }
     }
   }
-  return { settings: settings, checkins: dates };
+  return dates;
+}
+
+/** 行事曆一次拿齊餵魚 + 澆花的設定與打卡紀錄 */
+function getCalendarData(userId) {
+  if (!userId) throw new Error('缺少使用者資訊');
+  return {
+    fish:  { settings: getSettings(userId, 'fish'),  checkins: getCheckinDates_(userId, 'fish') },
+    water: { settings: getSettings(userId, 'water'), checkins: getCheckinDates_(userId, 'water') }
+  };
 }

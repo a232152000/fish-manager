@@ -12,6 +12,8 @@
       --ocean-2: #1f8fb0;
       --gold: #f6b93b;
       --gold-2: #e59a1e;
+      --plant: #4caf6a;
+      --plant-2: #3d9557;
       --gray-fish: #c3ced6;
       --ink: #22333b;
       --muted: #7c8b93;
@@ -72,10 +74,24 @@
       box-shadow: 0 10px 22px rgba(31,143,176,.35);
     }
     .btn-primary:disabled { opacity: .55; }
+    .btn-water {
+      width: 100%; padding: 16px; font-size: 17px; color: #fff;
+      background: linear-gradient(135deg, var(--plant), var(--plant-2));
+      box-shadow: 0 10px 22px rgba(60,150,90,.32);
+    }
+    .btn-water:disabled { opacity: .55; }
     .last-checkin {
-      margin-top: 18px; font-size: 13px; color: var(--muted);
+      margin-top: 16px; font-size: 13px; color: var(--muted);
       background: #f4fafc; border-radius: 12px; padding: 12px;
     }
+    /* 打卡頁兩張卡 */
+    .act-card { text-align: center; }
+    .act-card + .act-card { margin-top: 16px; }
+    .act-icon { width: 76px; height: 76px; margin: 2px auto 8px; }
+    .act-icon svg { width: 100%; height: 100%; }
+    .act-icon.fish-c { color: var(--ocean-1); }
+    .act-icon.plant-c { color: var(--plant); }
+    .act-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 
     /* ---- 設定頁 ---- */
     .field { margin-bottom: 18px; }
@@ -98,6 +114,11 @@
       background: #fff; font-size: 22px; color: var(--ocean-2); font-weight: 700; cursor: pointer;
     }
     .stepper input { text-align: center; }
+    .sec-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .sec-title svg { width: 22px; height: 22px; }
+    .sec-title .fish-c { color: var(--ocean-1); }
+    .sec-title .plant-c { color: var(--plant); }
+    .divider { height: 1px; background: var(--line); margin: 22px 0; }
 
     /* ---- 行事曆頁 ---- */
     .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -116,14 +137,19 @@
     .day.other { color: #cdd8de; }
     .day.today { background: #eaf7fb; font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--ocean-1); }
     .day .num { line-height: 1; }
-    .day .fish { width: 30px; height: 21px; margin-top: 4px; }
-    .day .fish.gray { color: var(--gray-fish); }
-    .day .fish.gold { color: var(--gold); filter: drop-shadow(0 1px 2px rgba(230,154,30,.5)); }
-    .legend { display: flex; justify-content: center; gap: 22px; margin-top: 18px; font-size: 13px; color: var(--muted); }
-    .legend span { display: inline-flex; align-items: center; gap: 6px; }
-    .legend svg { width: 22px; height: 16px; }
+    .day .icons { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 3px; min-height: 20px; }
+    .day .fish { width: 26px; height: 18px; }
+    .day .plant { width: 17px; height: 20px; }
+    .day .gray { color: var(--gray-fish); }
+    .day .gold { color: var(--gold); filter: drop-shadow(0 1px 2px rgba(230,154,30,.5)); }
+    .day .green { color: var(--plant); filter: drop-shadow(0 1px 2px rgba(60,150,90,.4)); }
+    .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 18px; margin-top: 18px; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend .fish { width: 22px; height: 16px; }
+    .legend .plant { width: 16px; height: 19px; }
     .legend .gray { color: var(--gray-fish); }
     .legend .gold { color: var(--gold); }
+    .legend .green { color: var(--plant); }
     .no-setting { text-align: center; color: var(--muted); font-size: 14px; padding: 10px 0 4px; }
 
     /* ---- 底部 Tab ---- */
@@ -173,6 +199,13 @@
       <circle cx="16" cy="15" r="3" fill="#fff"/>
       <circle cx="15.2" cy="14.5" r="1.4" fill="#22333b"/>
     </symbol>
+    <symbol id="plant" viewBox="0 0 44 50">
+      <circle cx="22" cy="15" r="9"/>
+      <circle cx="12" cy="22" r="6.5"/>
+      <circle cx="32" cy="22" r="6.5"/>
+      <rect x="7" y="29" width="30" height="5" rx="1.5"/>
+      <path d="M10 34 H34 L30 47 H14 Z"/>
+    </symbol>
   </svg>
 
   <div class="app">
@@ -186,32 +219,53 @@
 
     <!-- 功能一：打卡 -->
     <section class="view" id="view-checkin">
-      <div class="card checkin-wrap">
-        <div class="checkin-fish float"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
-        <div class="checkin-title">今天餵魚了嗎？</div>
-        <div class="checkin-desc">點下按鈕，幫魚兒記錄一餐 🐟</div>
-        <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">餵魚打卡</button>
-        <div class="last-checkin" id="lastCheckin" style="display:none"></div>
+      <div class="card act-card">
+        <div class="act-icon fish-c float"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
+        <div class="act-title">餵魚</div>
+        <button class="btn btn-primary" id="checkinBtnFish" onclick="doCheckin('fish')">餵魚打卡</button>
+        <div class="last-checkin" id="lastFish" style="display:none"></div>
+      </div>
+      <div class="card act-card">
+        <div class="act-icon plant-c float"><svg viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg></div>
+        <div class="act-title">澆花</div>
+        <button class="btn btn-water" id="checkinBtnWater" onclick="doCheckin('water')">澆花打卡</button>
+        <div class="last-checkin" id="lastWater" style="display:none"></div>
       </div>
     </section>
 
     <!-- 功能二：設定 -->
     <section class="view" id="view-settings">
       <div class="card">
+        <div class="sec-title"><svg class="fish-c" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>餵魚設定</div>
         <div class="field">
           <label>開始計算日期</label>
           <input type="date" id="startDate">
-          <div class="hint">從這天開始，依間隔天數推算餵魚日</div>
         </div>
         <div class="field">
           <label>餵魚間隔（天）</label>
           <div class="stepper">
-            <button type="button" onclick="stepInterval(-1)">−</button>
+            <button type="button" onclick="stepInterval('intervalDays', -1)">−</button>
             <input type="number" id="intervalDays" value="2" min="1" inputmode="numeric">
-            <button type="button" onclick="stepInterval(1)">＋</button>
+            <button type="button" onclick="stepInterval('intervalDays', 1)">＋</button>
           </div>
-          <div class="hint">例如設 2，代表每 2 天要餵一次</div>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="sec-title"><svg class="plant-c" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>澆花設定</div>
+        <div class="field">
+          <label>開始計算日期</label>
+          <input type="date" id="startDateWater">
+        </div>
+        <div class="field">
+          <label>澆花間隔（天）</label>
+          <div class="stepper">
+            <button type="button" onclick="stepInterval('intervalDaysWater', -1)">−</button>
+            <input type="number" id="intervalDaysWater" value="3" min="1" inputmode="numeric">
+            <button type="button" onclick="stepInterval('intervalDaysWater', 1)">＋</button>
+          </div>
+        </div>
+
         <button class="btn btn-primary" id="saveBtn" onclick="doSaveSettings()">儲存設定</button>
       </div>
     </section>
@@ -230,8 +284,10 @@
         <div class="days" id="calDays"></div>
         <div class="no-setting" id="noSetting" style="display:none">尚未設定餵魚計畫，先到「設定」頁設定吧！</div>
         <div class="legend">
-          <span><svg class="gray" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>該餵魚</span>
-          <span><svg class="gold" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>已餵魚</span>
+          <span><svg class="fish gray" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>該餵魚</span>
+          <span><svg class="fish gold" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>已餵魚</span>
+          <span><svg class="plant gray" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>該澆花</span>
+          <span><svg class="plant green" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>已澆花</span>
         </div>
       </div>
     </section>
@@ -337,50 +393,70 @@
       if (page === 'calendar') loadCalendar();
     }
 
-    // ---- 功能一：打卡 ----
-    function doCheckin() {
+    // ---- 功能一：打卡（type: 'fish' | 'water'）----
+    function doCheckin(type) {
       if (!userId) return;
-      var btn = document.getElementById('checkinBtn');
+      var isFish = type === 'fish';
+      var label = isFish ? '餵魚打卡' : '澆花打卡';
+      var btn = document.getElementById(isFish ? 'checkinBtnFish' : 'checkinBtnWater');
       btn.disabled = true; btn.textContent = '記錄中…';
-      api('checkin').then(function (res) {
-        btn.disabled = false; btn.textContent = '餵魚打卡';
-        toast(res.alreadyCheckedToday ? '今天已經餵過囉，再記一筆！' : '打卡成功，魚兒吃飽飽 🐟');
-        var box = document.getElementById('lastCheckin');
+      api('checkin', { type: type }).then(function (res) {
+        btn.disabled = false; btn.textContent = label;
+        if (res.alreadyCheckedToday) {
+          toast(isFish ? '今天已經餵過囉，再記一筆！' : '今天已經澆過囉，再記一筆！');
+        } else {
+          toast(isFish ? '打卡成功，魚兒吃飽飽 🐟' : '打卡成功，花兒喝飽水 🪴');
+        }
+        var box = document.getElementById(isFish ? 'lastFish' : 'lastWater');
         box.style.display = 'block';
-        box.textContent = '最近一次打卡：' + res.date + ' ' + res.time;
+        box.textContent = '最近一次：' + res.date + ' ' + res.time;
       }).catch(function (err) {
-        btn.disabled = false; btn.textContent = '餵魚打卡';
+        btn.disabled = false; btn.textContent = label;
         toast('打卡失敗：' + err);
       });
     }
 
     // ---- 功能二：設定 ----
-    function stepInterval(d) {
-      var input = document.getElementById('intervalDays');
+    function stepInterval(id, d) {
+      var input = document.getElementById(id);
       var v = (parseInt(input.value, 10) || 1) + d;
       if (v < 1) v = 1;
       input.value = v;
     }
-    function loadSettings() {
-      api('getSettings').then(function (d) {
+    function fillSettings(type) {
+      var dateId = type === 'fish' ? 'startDate' : 'startDateWater';
+      var intId = type === 'fish' ? 'intervalDays' : 'intervalDaysWater';
+      api('getSettings', { type: type }).then(function (d) {
         var s = d.settings;
         if (s && s.startDate) {
-          document.getElementById('startDate').value = toYMD(s.startDate);
-          document.getElementById('intervalDays').value = s.intervalDays || 1;
-        } else if (!document.getElementById('startDate').value) {
-          document.getElementById('startDate').value = new Date().toISOString().slice(0, 10);
+          document.getElementById(dateId).value = toYMD(s.startDate);
+          document.getElementById(intId).value = s.intervalDays || 1;
+        } else if (!document.getElementById(dateId).value) {
+          document.getElementById(dateId).value = new Date().toISOString().slice(0, 10);
         }
       }).catch(function (err) {
         toast('讀取設定失敗：' + err);
       });
     }
+    function loadSettings() {
+      fillSettings('fish');
+      fillSettings('water');
+    }
     function doSaveSettings() {
       if (!userId) return;
-      var startDate = document.getElementById('startDate').value;
-      var interval = document.getElementById('intervalDays').value;
       var btn = document.getElementById('saveBtn');
       btn.disabled = true; btn.textContent = '儲存中…';
-      api('saveSettings', { startDate: startDate, intervalDays: interval }).then(function () {
+      var p1 = api('saveSettings', {
+        type: 'fish',
+        startDate: document.getElementById('startDate').value,
+        intervalDays: document.getElementById('intervalDays').value
+      });
+      var p2 = api('saveSettings', {
+        type: 'water',
+        startDate: document.getElementById('startDateWater').value,
+        intervalDays: document.getElementById('intervalDaysWater').value
+      });
+      Promise.all([p1, p2]).then(function () {
         btn.disabled = false; btn.textContent = '儲存設定';
         toast('設定已儲存 ✅');
       }).catch(function (err) {
@@ -390,17 +466,20 @@
     }
 
     // ---- 功能三：行事曆 ----
-    var calYear, calMonth; // 目前顯示的年月
-    var feedSettings = null;      // { startDate, intervalDays }
-    var checkinSet = {};          // { 'yyyy-MM-dd': true }
+    var calYear, calMonth;              // 目前顯示的年月
+    var fishSettings = null, waterSettings = null;
+    var fishSet = {}, waterSet = {};    // { 'yyyy-MM-dd': true }
 
     function loadCalendar() {
       var now = new Date();
       if (calYear === undefined) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
       api('getCalendarData').then(function (data) {
-        feedSettings = data.settings;
-        checkinSet = {};
-        (data.checkins || []).forEach(function (d) { checkinSet[toYMD(d)] = true; });
+        fishSettings = data.fish.settings;
+        fishSet = {};
+        (data.fish.checkins || []).forEach(function (d) { fishSet[toYMD(d)] = true; });
+        waterSettings = data.water.settings;
+        waterSet = {};
+        (data.water.checkins || []).forEach(function (d) { waterSet[toYMD(d)] = true; });
         renderCalendar();
       }).catch(function (err) {
         toast('讀取日曆失敗：' + err);
@@ -422,11 +501,12 @@
       if (isNaN(dt.getTime())) return String(v).slice(0, 10);
       return fmt(dt.getFullYear(), dt.getMonth(), dt.getDate());
     }
-    function isFeedDay(dateObj) {
-      if (!feedSettings || !feedSettings.startDate) return false;
-      var parts = toYMD(feedSettings.startDate).split('-');
+    // 依某項設定判斷某天是否為「該做」的日子
+    function isDueDay(dateObj, settings) {
+      if (!settings || !settings.startDate) return false;
+      var parts = toYMD(settings.startDate).split('-');
       var start = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-      var interval = feedSettings.intervalDays || 1;
+      var interval = settings.intervalDays || 1;
       var diff = Math.round((dateObj - start) / 86400000);
       return diff >= 0 && diff % interval === 0;
     }
@@ -439,10 +519,19 @@
         '<circle cx="15.2" cy="14.5" r="1.4" fill="#22333b"/>' +
         '</svg>';
     }
+    function plantSVG(cls) {
+      return '<svg class="plant ' + cls + '" viewBox="0 0 44 50">' +
+        '<circle cx="22" cy="15" r="9" fill="currentColor"/>' +
+        '<circle cx="12" cy="22" r="6.5" fill="currentColor"/>' +
+        '<circle cx="32" cy="22" r="6.5" fill="currentColor"/>' +
+        '<rect x="7" y="29" width="30" height="5" rx="1.5" fill="currentColor"/>' +
+        '<path d="M10 34 H34 L30 47 H14 Z" fill="currentColor"/>' +
+        '</svg>';
+    }
     function renderCalendar() {
       document.getElementById('calMonth').textContent = calYear + ' 年 ' + (calMonth + 1) + ' 月';
-      document.getElementById('noSetting').style.display =
-        (feedSettings && feedSettings.startDate) ? 'none' : 'block';
+      var hasAny = (fishSettings && fishSettings.startDate) || (waterSettings && waterSettings.startDate);
+      document.getElementById('noSetting').style.display = hasAny ? 'none' : 'block';
 
       var first = new Date(calYear, calMonth, 1);
       var startWeekday = first.getDay();
@@ -461,10 +550,13 @@
         var key = fmt(calYear, calMonth, d);
         var cls = 'day';
         if (cur.getTime() === today.getTime()) cls += ' today';
-        var fish = '';
-        if (checkinSet[key]) fish = fishSVG('gold');       // 已餵魚（金魚，最優先）
-        else if (isFeedDay(cur)) fish = fishSVG('gray');   // 該餵魚（灰魚）
-        html += '<div class="' + cls + '"><span class="num">' + d + '</span>' + fish + '</div>';
+        var icons = '';
+        if (fishSet[key]) icons += fishSVG('gold');            // 已餵魚（金魚）
+        else if (isDueDay(cur, fishSettings)) icons += fishSVG('gray');  // 該餵魚（灰魚）
+        if (waterSet[key]) icons += plantSVG('green');         // 已澆花（綠盆栽）
+        else if (isDueDay(cur, waterSettings)) icons += plantSVG('gray'); // 該澆花（灰盆栽）
+        var iconsHtml = icons ? '<div class="icons">' + icons + '</div>' : '';
+        html += '<div class="' + cls + '"><span class="num">' + d + '</span>' + iconsHtml + '</div>';
       }
       // 後置補白
       var cellsUsed = startWeekday + daysInMonth;
