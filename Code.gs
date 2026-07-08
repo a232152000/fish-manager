@@ -55,9 +55,16 @@ function json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/** 快取「已開啟的試算表」，單次請求內只開一次檔（不快取資料列） */
+var _ss = null;
+function ss_() {
+  if (!_ss) _ss = SpreadsheetApp.openById(SHEET_ID);
+  return _ss;
+}
+
 /** 取得（必要時建立）指定分頁，並確保有表頭 */
 function getSheet_(name, headers) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = ss_();
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
