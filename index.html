@@ -50,6 +50,19 @@
     }
     .view { display: none; animation: fade .25s ease; }
     .view.active { display: block; }
+
+    /* 餵魚／澆花 分頁切換 */
+    .seg { display: flex; background: #e7eff2; border-radius: 15px; padding: 4px; margin-bottom: 16px; }
+    .seg button {
+      flex: 1; border: none; background: none; padding: 11px; border-radius: 12px;
+      font-family: inherit; font-weight: 700; font-size: 15px; color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all .15s ease;
+    }
+    .seg button svg { width: 20px; height: 16px; }
+    .seg button.active { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .seg button.active[data-t="fish"] { color: var(--ocean-2); }
+    .seg button.active[data-t="water"] { color: var(--plant-2); }
     @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
     /* ---- 打卡頁 ---- */
@@ -238,7 +251,11 @@
 
     <!-- 功能一：打卡 -->
     <section class="view" id="view-checkin">
-      <div class="card act-card">
+      <div class="seg" id="segCheckin">
+        <button class="active" data-t="fish" onclick="segCheckin('fish')"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>餵魚</button>
+        <button data-t="water" onclick="segCheckin('water')"><svg viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>澆花</button>
+      </div>
+      <div class="card act-card" id="cardFish">
         <div class="act-icon fish-c float"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
         <div class="act-title">餵魚</div>
         <div class="wheel" id="wheelFish">
@@ -250,7 +267,7 @@
         <button class="btn btn-primary" id="checkinBtnFish" onclick="doCheckin('fish')">餵魚打卡</button>
         <div class="last-checkin" id="lastFish" style="display:none"></div>
       </div>
-      <div class="card act-card">
+      <div class="card act-card" id="cardWater" style="display:none">
         <div class="act-icon plant-c float"><svg viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg></div>
         <div class="act-title">澆花</div>
         <div class="wheel" id="wheelWater">
@@ -266,44 +283,48 @@
 
     <!-- 功能二：設定 -->
     <section class="view" id="view-settings">
+      <div class="seg" id="segSettings">
+        <button class="active" data-t="fish" onclick="segSettings('fish')"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>餵魚</button>
+        <button data-t="water" onclick="segSettings('water')"><svg viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>澆花</button>
+      </div>
       <div class="card">
-        <div class="sec-title"><svg class="fish-c" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>餵魚設定</div>
-        <div class="field">
-          <label>開始計算日期</label>
-          <div class="wheel" id="wheelStart">
-            <div class="wheel-band"></div>
-            <div class="wheel-col" data-unit="year"></div>
-            <div class="wheel-col" data-unit="month"></div>
-            <div class="wheel-col" data-unit="day"></div>
+        <div id="setFish">
+          <div class="field">
+            <label>開始計算日期</label>
+            <div class="wheel" id="wheelStart">
+              <div class="wheel-band"></div>
+              <div class="wheel-col" data-unit="year"></div>
+              <div class="wheel-col" data-unit="month"></div>
+              <div class="wheel-col" data-unit="day"></div>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>餵魚間隔（天）</label>
-          <div class="stepper">
-            <button type="button" onclick="stepInterval('intervalDays', -1)">−</button>
-            <input type="number" id="intervalDays" value="2" min="1" inputmode="numeric">
-            <button type="button" onclick="stepInterval('intervalDays', 1)">＋</button>
+          <div class="field">
+            <label>餵魚間隔（天）</label>
+            <div class="stepper">
+              <button type="button" onclick="stepInterval('intervalDays', -1)">−</button>
+              <input type="number" id="intervalDays" value="2" min="1" inputmode="numeric">
+              <button type="button" onclick="stepInterval('intervalDays', 1)">＋</button>
+            </div>
           </div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="sec-title"><svg class="plant-c" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>澆花設定</div>
-        <div class="field">
-          <label>開始計算日期</label>
-          <div class="wheel" id="wheelStartWater">
-            <div class="wheel-band"></div>
-            <div class="wheel-col" data-unit="year"></div>
-            <div class="wheel-col" data-unit="month"></div>
-            <div class="wheel-col" data-unit="day"></div>
+        <div id="setWater" style="display:none">
+          <div class="field">
+            <label>開始計算日期</label>
+            <div class="wheel" id="wheelStartWater">
+              <div class="wheel-band"></div>
+              <div class="wheel-col" data-unit="year"></div>
+              <div class="wheel-col" data-unit="month"></div>
+              <div class="wheel-col" data-unit="day"></div>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>澆花間隔（天）</label>
-          <div class="stepper">
-            <button type="button" onclick="stepInterval('intervalDaysWater', -1)">−</button>
-            <input type="number" id="intervalDaysWater" value="3" min="1" inputmode="numeric">
-            <button type="button" onclick="stepInterval('intervalDaysWater', 1)">＋</button>
+          <div class="field">
+            <label>澆花間隔（天）</label>
+            <div class="stepper">
+              <button type="button" onclick="stepInterval('intervalDaysWater', -1)">−</button>
+              <input type="number" id="intervalDaysWater" value="3" min="1" inputmode="numeric">
+              <button type="button" onclick="stepInterval('intervalDaysWater', 1)">＋</button>
+            </div>
           </div>
         </div>
 
@@ -476,13 +497,48 @@
       if (d > maxD) d = maxD;
       return fmt(y, m - 1, d);
     }
-    // 打卡頁兩組滾輪：預設今天（只初始化一次）
+    function ymdToDate(ymd) {
+      var p = String(ymd).split('-');
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+    function dateToYMD(dt) {
+      return fmt(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    }
+    function setSegActive(segId, type) {
+      document.querySelectorAll('#' + segId + ' button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.t === type);
+      });
+    }
+
+    // ---- 打卡頁：餵魚／澆花分頁 + 滾輪 ----
+    var checkinType = 'fish';
+    var checkinDate = { fish: null, water: null }; // 記住各自滾到的日期
+
     function initPickers() {
       if (pickersReady) return;
-      var now = new Date();
-      setWheel(document.getElementById('wheelFish'), now);
-      setWheel(document.getElementById('wheelWater'), now);
       pickersReady = true;
+      var now = new Date();
+      checkinDate.fish = now;
+      checkinDate.water = new Date(now.getTime());
+      checkinType = 'fish';
+      applyCheckinSeg();
+    }
+    function segCheckin(type) {
+      if (type === checkinType) return;
+      // 切走前先記住目前這格滾到的日期
+      var curEl = document.getElementById(checkinType === 'fish' ? 'wheelFish' : 'wheelWater');
+      checkinDate[checkinType] = ymdToDate(readWheel(curEl));
+      checkinType = type;
+      applyCheckinSeg();
+    }
+    function applyCheckinSeg() {
+      var isFish = checkinType === 'fish';
+      document.getElementById('cardFish').style.display = isFish ? 'block' : 'none';
+      document.getElementById('cardWater').style.display = isFish ? 'none' : 'block';
+      setSegActive('segCheckin', checkinType);
+      // 元素現在可見，設定滾輪位置才會生效
+      var el = document.getElementById(isFish ? 'wheelFish' : 'wheelWater');
+      setWheel(el, checkinDate[checkinType] || new Date());
     }
     function pickedDate(type) {
       return readWheel(document.getElementById(type === 'fish' ? 'wheelFish' : 'wheelWater'));
@@ -519,20 +575,23 @@
       if (v < 1) v = 1;
       input.value = v;
     }
+    var settingsType = 'fish';
+    var setDate = { fish: null, water: null };  // 記住各自的開始日期
+
     function fillSettings(type) {
-      var wheelId = type === 'fish' ? 'wheelStart' : 'wheelStartWater';
       var intId = type === 'fish' ? 'intervalDays' : 'intervalDaysWater';
       api('getSettings', { type: type }).then(function (d) {
         var s = d.settings;
-        var dateObj;
         if (s && s.startDate) {
-          var ymd = toYMD(s.startDate).split('-');
-          dateObj = new Date(+ymd[0], +ymd[1] - 1, +ymd[2]);
+          setDate[type] = ymdToDate(toYMD(s.startDate));
           document.getElementById(intId).value = s.intervalDays || 1;
         } else {
-          dateObj = new Date();
+          setDate[type] = new Date();
         }
-        setWheel(document.getElementById(wheelId), dateObj);
+        // 只有目前顯示中的那格能設定滾輪位置（隱藏中的等切過去再設）
+        if (type === settingsType) {
+          setWheel(document.getElementById(type === 'fish' ? 'wheelStart' : 'wheelStartWater'), setDate[type]);
+        }
       }).catch(function (err) {
         toast('讀取設定失敗：' + err);
       });
@@ -541,18 +600,33 @@
       fillSettings('fish');
       fillSettings('water');
     }
+    function segSettings(type) {
+      if (type === settingsType) return;
+      // 切走前記住目前這格滾到的日期
+      var curEl = document.getElementById(settingsType === 'fish' ? 'wheelStart' : 'wheelStartWater');
+      setDate[settingsType] = ymdToDate(readWheel(curEl));
+      settingsType = type;
+      var isFish = type === 'fish';
+      document.getElementById('setFish').style.display = isFish ? 'block' : 'none';
+      document.getElementById('setWater').style.display = isFish ? 'none' : 'block';
+      setSegActive('segSettings', type);
+      setWheel(document.getElementById(isFish ? 'wheelStart' : 'wheelStartWater'), setDate[type] || new Date());
+    }
     function doSaveSettings() {
       if (!userId) return;
       var btn = document.getElementById('saveBtn');
       btn.disabled = true; btn.textContent = '儲存中…';
+      // 先把目前顯示中的滾輪日期收進 setDate（隱藏的那格已在切換時收好）
+      var curEl = document.getElementById(settingsType === 'fish' ? 'wheelStart' : 'wheelStartWater');
+      setDate[settingsType] = ymdToDate(readWheel(curEl));
       var p1 = api('saveSettings', {
         type: 'fish',
-        startDate: readWheel(document.getElementById('wheelStart')),
+        startDate: dateToYMD(setDate.fish || new Date()),
         intervalDays: document.getElementById('intervalDays').value
       });
       var p2 = api('saveSettings', {
         type: 'water',
-        startDate: readWheel(document.getElementById('wheelStartWater')),
+        startDate: dateToYMD(setDate.water || new Date()),
         intervalDays: document.getElementById('intervalDaysWater').value
       });
       Promise.all([p1, p2]).then(function () {
