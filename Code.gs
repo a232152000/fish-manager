@@ -33,7 +33,7 @@ function doPost(e) {
     var result;
 
     if (action === 'checkin') {
-      result = recordCheckin(userId, type);
+      result = recordCheckin(userId, type, req.date);
     } else if (action === 'getSettings') {
       result = { settings: getSettings(userId, type) };
     } else if (action === 'saveSettings') {
@@ -74,13 +74,13 @@ function toDateStr_(value) {
   return String(value);
 }
 
-/** 打卡（餵魚或澆花） */
-function recordCheckin(userId, type) {
+/** 打卡（餵魚或澆花）；date 由前端傳入（預設今天） */
+function recordCheckin(userId, type, date) {
   if (!userId) throw new Error('缺少使用者資訊');
   type = type || 'fish';
   var tz = Session.getScriptTimeZone();
   var now = new Date();
-  var dateStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+  var dateStr = date || Utilities.formatDate(now, tz, 'yyyy-MM-dd');
 
   var sheet = getSheet_(SHEETS[type].checkin, ['userId', 'timestamp', 'date']);
   var data = sheet.getDataRange().getValues();
@@ -95,7 +95,7 @@ function recordCheckin(userId, type) {
 
   return {
     ok: true,
-    alreadyCheckedToday: already,
+    alreadyChecked: already,
     date: dateStr,
     time: Utilities.formatDate(now, tz, 'HH:mm')
   };

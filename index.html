@@ -92,6 +92,25 @@
     .act-icon.fish-c { color: var(--ocean-1); }
     .act-icon.plant-c { color: var(--plant); }
     .act-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+    /* 年月日滾輪選擇器 */
+    .wheel { position: relative; display: flex; gap: 8px; height: 150px; margin-bottom: 16px; }
+    .wheel-band {
+      position: absolute; left: 0; right: 0; top: 60px; height: 30px;
+      background: #eef7fa; border-radius: 10px; pointer-events: none; z-index: 0;
+    }
+    .wheel-col {
+      flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch; text-align: center;
+      scrollbar-width: none; position: relative; z-index: 1;
+      -webkit-mask-image: linear-gradient(180deg, transparent, #000 32%, #000 68%, transparent);
+              mask-image: linear-gradient(180deg, transparent, #000 32%, #000 68%, transparent);
+    }
+    .wheel-col::-webkit-scrollbar { display: none; }
+    .wheel-pad { height: 60px; }
+    .wheel-item {
+      height: 30px; line-height: 30px; scroll-snap-align: center;
+      font-size: 16px; color: var(--muted); font-variant-numeric: tabular-nums;
+    }
 
     /* ---- 設定頁 ---- */
     .field { margin-bottom: 18px; }
@@ -222,12 +241,24 @@
       <div class="card act-card">
         <div class="act-icon fish-c float"><svg viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg></div>
         <div class="act-title">餵魚</div>
+        <div class="wheel" id="wheelFish">
+          <div class="wheel-band"></div>
+          <div class="wheel-col" data-unit="year"></div>
+          <div class="wheel-col" data-unit="month"></div>
+          <div class="wheel-col" data-unit="day"></div>
+        </div>
         <button class="btn btn-primary" id="checkinBtnFish" onclick="doCheckin('fish')">餵魚打卡</button>
         <div class="last-checkin" id="lastFish" style="display:none"></div>
       </div>
       <div class="card act-card">
         <div class="act-icon plant-c float"><svg viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg></div>
         <div class="act-title">澆花</div>
+        <div class="wheel" id="wheelWater">
+          <div class="wheel-band"></div>
+          <div class="wheel-col" data-unit="year"></div>
+          <div class="wheel-col" data-unit="month"></div>
+          <div class="wheel-col" data-unit="day"></div>
+        </div>
         <button class="btn btn-water" id="checkinBtnWater" onclick="doCheckin('water')">澆花打卡</button>
         <div class="last-checkin" id="lastWater" style="display:none"></div>
       </div>
@@ -389,8 +420,56 @@
       document.querySelectorAll('.tab').forEach(function (t) {
         t.classList.toggle('active', t.dataset.page === page);
       });
+      if (page === 'checkin') initPickers();
       if (page === 'settings') loadSettings();
       if (page === 'calendar') loadCalendar();
+    }
+
+    // ---- 年月日滾輪選擇器 ----
+    var ITEM_H = 30;
+    var wheelYears = [], wheelMonths = [], wheelDays = [];
+    (function () {
+      var ty = new Date().getFullYear();
+      for (var y = ty - 1; y <= ty + 2; y++) wheelYears.push(y);
+      for (var m = 1; m <= 12; m++) wheelMonths.push(m);
+      for (var d = 1; d <= 31; d++) wheelDays.push(d);
+    })();
+    var pickersReady = false;
+
+    function buildCol(col, values, selected) {
+      var html = '<div class="wheel-pad"></div>';
+      values.forEach(function (v) { html += '<div class="wheel-item">' + v + '</div>'; });
+      html += '<div class="wheel-pad"></div>';
+      col.innerHTML = html;
+      var idx = values.indexOf(selected);
+      if (idx < 0) idx = 0;
+      col.scrollTop = idx * ITEM_H;
+    }
+    function readCol(col, values) {
+      var idx = Math.round(col.scrollTop / ITEM_H);
+      if (idx < 0) idx = 0;
+      if (idx >= values.length) idx = values.length - 1;
+      return values[idx];
+    }
+    function initPickers() {
+      if (pickersReady) return;
+      var now = new Date();
+      ['wheelFish', 'wheelWater'].forEach(function (id) {
+        var w = document.getElementById(id);
+        buildCol(w.querySelector('[data-unit="year"]'), wheelYears, now.getFullYear());
+        buildCol(w.querySelector('[data-unit="month"]'), wheelMonths, now.getMonth() + 1);
+        buildCol(w.querySelector('[data-unit="day"]'), wheelDays, now.getDate());
+      });
+      pickersReady = true;
+    }
+    function pickedDate(type) {
+      var w = document.getElementById(type === 'fish' ? 'wheelFish' : 'wheelWater');
+      var y = readCol(w.querySelector('[data-unit="year"]'), wheelYears);
+      var m = readCol(w.querySelector('[data-unit="month"]'), wheelMonths);
+      var d = readCol(w.querySelector('[data-unit="day"]'), wheelDays);
+      var maxD = new Date(y, m, 0).getDate();  // 該月天數，超過就夾住
+      if (d > maxD) d = maxD;
+      return fmt(y, m - 1, d);
     }
 
     // ---- 功能一：打卡（type: 'fish' | 'water'）----
@@ -398,12 +477,13 @@
       if (!userId) return;
       var isFish = type === 'fish';
       var label = isFish ? '餵魚打卡' : '澆花打卡';
+      var date = pickedDate(type);
       var btn = document.getElementById(isFish ? 'checkinBtnFish' : 'checkinBtnWater');
       btn.disabled = true; btn.textContent = '記錄中…';
-      api('checkin', { type: type }).then(function (res) {
+      api('checkin', { type: type, date: date }).then(function (res) {
         btn.disabled = false; btn.textContent = label;
-        if (res.alreadyCheckedToday) {
-          toast(isFish ? '今天已經餵過囉，再記一筆！' : '今天已經澆過囉，再記一筆！');
+        if (res.alreadyChecked) {
+          toast('這天已經有紀錄了，再記一筆！');
         } else {
           toast(isFish ? '打卡成功，魚兒吃飽飽 🐟' : '打卡成功，花兒喝飽水 🪴');
         }
