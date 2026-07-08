@@ -15,9 +15,9 @@ var SETTINGS_SHEET = 'settings';
 var CHECKIN_HEADERS = ['userId', 'type', 'timestamp', 'date'];
 var SETTINGS_HEADERS = ['userId', 'type', 'startDate', 'intervalDays', 'updatedAt'];
 
-/** 用瀏覽器打開 /exec 時回一句話確認 API 活著 */
+/** 用瀏覽器打開 /exec 時回一句話確認 API 活著（ver 用來確認部署的是新版）*/
 function doGet() {
-  return json_({ ok: true, msg: '喂魚小幫手 API 運作中' });
+  return json_({ ok: true, msg: '喂魚小幫手 API 運作中', ver: 'merged-type-v1' });
 }
 
 /** 前端所有請求走這裡（POST，body 為 JSON 字串，用 text/plain 避開 CORS preflight） */
