@@ -172,6 +172,8 @@
     .day .icons { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 3px; min-height: 20px; }
     .day .fish { width: 26px; height: 18px; }
     .day .plant { width: 17px; height: 20px; }
+    .day .emo { font-size: 17px; line-height: 1; }
+    .legend .emo { font-size: 15px; line-height: 1; }
     .day .gray { color: var(--gray-fish); }
     .day .gold { color: var(--gold); filter: drop-shadow(0 1px 2px rgba(230,154,30,.5)); }
     .day .green { color: var(--plant); filter: drop-shadow(0 1px 2px rgba(60,150,90,.4)); }
@@ -347,9 +349,9 @@
         <div class="no-setting" id="noSetting" style="display:none">尚未設定餵魚計畫，先到「設定」頁設定吧！</div>
         <div class="legend">
           <span><svg class="fish gray" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>該餵魚</span>
-          <span><svg class="fish gold" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>已餵魚</span>
+          <span><span class="emo">🐟</span>已餵魚</span>
           <span><svg class="plant gray" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>該澆花</span>
-          <span><svg class="plant green" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>已澆花</span>
+          <span><span class="emo">🪴</span>已澆花</span>
         </div>
       </div>
     </section>
@@ -724,9 +726,9 @@
         var cls = 'day';
         if (cur.getTime() === today.getTime()) cls += ' today';
         var icons = '';
-        if (fishSet[key]) icons += fishSVG('gold');            // 已餵魚（金魚）
-        else if (isDueDay(cur, fishSettings)) icons += fishSVG('gray');  // 該餵魚（灰魚）
-        if (waterSet[key]) icons += plantSVG('green');         // 已澆花（綠盆栽）
+        if (fishSet[key]) icons += '<span class="emo">🐟</span>';        // 已餵魚（emoji）
+        else if (isDueDay(cur, fishSettings)) icons += fishSVG('gray');   // 該餵魚（灰魚）
+        if (waterSet[key]) icons += '<span class="emo">🪴</span>';       // 已澆花（emoji）
         else if (isDueDay(cur, waterSettings)) icons += plantSVG('gray'); // 該澆花（灰盆栽）
         var iconsHtml = icons ? '<div class="icons">' + icons + '</div>' : '';
         html += '<div class="' + cls + '"><span class="num">' + d + '</span>' + iconsHtml + '</div>';
