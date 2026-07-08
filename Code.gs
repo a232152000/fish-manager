@@ -2,21 +2,18 @@
  * 喂魚小幫手 — Google Apps Script 後端（JSON API）
  * 前端放在 GitHub Pages，透過 fetch 呼叫這裡。
  *
- * 支援兩種類型 type：
- *   fish （餵魚）  → 分頁 checkins / settings
- *   water（澆花）  → 分頁 waterCheckins / waterSettings
- * 每個分頁欄位：
- *   checkin ：userId | timestamp(ISO) | date(yyyy-MM-dd)
- *   settings：userId | startDate | intervalDays | updatedAt(ISO)
+ * 資料合併為兩張分頁，以 type 欄位區分 fish（餵魚）/ water（澆花）：
+ *   checkins：userId | type | timestamp(ISO) | date(yyyy-MM-dd)
+ *   settings：userId | type | startDate | intervalDays | updatedAt(ISO)
  */
 
 // 指定要寫入的 Google Sheet ID。
 var SHEET_ID = '1FNkH2wPSOWe9cLnAHqnfWGexz0QenEF-Z5tLLFAG6bw';
 
-var SHEETS = {
-  fish:  { checkin: 'checkins',      settings: 'settings' },
-  water: { checkin: 'waterCheckins', settings: 'waterSettings' }
-};
+var CHECKIN_SHEET = 'checkins';
+var SETTINGS_SHEET = 'settings';
+var CHECKIN_HEADERS = ['userId', 'type', 'timestamp', 'date'];
+var SETTINGS_HEADERS = ['userId', 'type', 'startDate', 'intervalDays', 'updatedAt'];
 
 /** 用瀏覽器打開 /exec 時回一句話確認 API 活著 */
 function doGet() {
@@ -89,16 +86,16 @@ function recordCheckin(userId, type, date) {
   var now = new Date();
   var dateStr = date || Utilities.formatDate(now, tz, 'yyyy-MM-dd');
 
-  var sheet = getSheet_(SHEETS[type].checkin, ['userId', 'timestamp', 'date']);
+  var sheet = getSheet_(CHECKIN_SHEET, CHECKIN_HEADERS);
   var data = sheet.getDataRange().getValues();
   var already = false;
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === userId && toDateStr_(data[i][2]) === dateStr) {
+    if (String(data[i][0]) === userId && String(data[i][1]) === type && toDateStr_(data[i][3]) === dateStr) {
       already = true;
       break;
     }
   }
-  sheet.appendRow([userId, now.toISOString(), dateStr]);
+  sheet.appendRow([userId, type, now.toISOString(), dateStr]);
 
   return {
     ok: true,
@@ -112,17 +109,17 @@ function recordCheckin(userId, type, date) {
 function getSettings(userId, type) {
   if (!userId) throw new Error('缺少使用者資訊');
   type = type || 'fish';
-  var sheet = getSheet_(SHEETS[type].settings, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
+  var sheet = getSheet_(SETTINGS_SHEET, SETTINGS_HEADERS);
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === userId) {
-      return { startDate: toDateStr_(data[i][1]), intervalDays: Number(data[i][2]) || 1 };
+    if (String(data[i][0]) === userId && String(data[i][1]) === type) {
+      return { startDate: toDateStr_(data[i][2]), intervalDays: Number(data[i][3]) || 1 };
     }
   }
   return null;
 }
 
-/** 儲存設定（同一 userId 覆蓋更新） */
+/** 儲存設定（同一 userId + type 覆蓋更新） */
 function saveSettings(userId, type, startDate, intervalDays) {
   if (!userId) throw new Error('缺少使用者資訊');
   if (!startDate) throw new Error('請選擇開始日期');
@@ -130,42 +127,47 @@ function saveSettings(userId, type, startDate, intervalDays) {
   var interval = parseInt(intervalDays, 10);
   if (!interval || interval < 1) throw new Error('間隔天數需為 1 以上');
 
-  var sheet = getSheet_(SHEETS[type].settings, ['userId', 'startDate', 'intervalDays', 'updatedAt']);
+  var sheet = getSheet_(SETTINGS_SHEET, SETTINGS_HEADERS);
   var data = sheet.getDataRange().getValues();
   var now = new Date().toISOString();
   var row = -1;
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === userId) { row = i + 1; break; }
+    if (String(data[i][0]) === userId && String(data[i][1]) === type) { row = i + 1; break; }
   }
-  var values = [[userId, startDate, interval, now]];
+  var values = [[userId, type, startDate, interval, now]];
   if (row === -1) {
     sheet.appendRow(values[0]);
   } else {
-    sheet.getRange(row, 1, 1, 4).setValues(values);
+    sheet.getRange(row, 1, 1, values[0].length).setValues(values);
   }
   return { ok: true };
 }
 
-/** 取某類型的所有打卡日期（去重） */
-function getCheckinDates_(userId, type) {
-  var sheet = getSheet_(SHEETS[type].checkin, ['userId', 'timestamp', 'date']);
-  var data = sheet.getDataRange().getValues();
-  var seen = {};
-  var dates = [];
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === userId) {
-      var d = toDateStr_(data[i][2]);
-      if (!seen[d]) { seen[d] = true; dates.push(d); }
-    }
-  }
-  return dates;
-}
-
-/** 行事曆一次拿齊餵魚 + 澆花的設定與打卡紀錄 */
+/** 行事曆一次拿齊餵魚 + 澆花的設定與打卡紀錄（每張表只讀一次） */
 function getCalendarData(userId) {
   if (!userId) throw new Error('缺少使用者資訊');
-  return {
-    fish:  { settings: getSettings(userId, 'fish'),  checkins: getCheckinDates_(userId, 'fish') },
-    water: { settings: getSettings(userId, 'water'), checkins: getCheckinDates_(userId, 'water') }
+  var out = {
+    fish:  { settings: null, checkins: [] },
+    water: { settings: null, checkins: [] }
   };
+
+  // 設定：一次讀完，依 type 分流
+  var sData = getSheet_(SETTINGS_SHEET, SETTINGS_HEADERS).getDataRange().getValues();
+  for (var i = 1; i < sData.length; i++) {
+    if (String(sData[i][0]) !== userId) continue;
+    var t = String(sData[i][1]);
+    if (out[t]) out[t].settings = { startDate: toDateStr_(sData[i][2]), intervalDays: Number(sData[i][3]) || 1 };
+  }
+
+  // 打卡：一次讀完，依 type 分流並去重
+  var cData = getSheet_(CHECKIN_SHEET, CHECKIN_HEADERS).getDataRange().getValues();
+  var seen = { fish: {}, water: {} };
+  for (var j = 1; j < cData.length; j++) {
+    if (String(cData[j][0]) !== userId) continue;
+    var ct = String(cData[j][1]);
+    if (!out[ct]) continue;
+    var d = toDateStr_(cData[j][3]);
+    if (!seen[ct][d]) { seen[ct][d] = true; out[ct].checkins.push(d); }
+  }
+  return out;
 }
