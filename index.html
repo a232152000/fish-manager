@@ -270,7 +270,12 @@
         <div class="sec-title"><svg class="fish-c" viewBox="0 0 64 40" fill="currentColor"><use href="#fish"/></svg>餵魚設定</div>
         <div class="field">
           <label>開始計算日期</label>
-          <input type="date" id="startDate">
+          <div class="wheel" id="wheelStart">
+            <div class="wheel-band"></div>
+            <div class="wheel-col" data-unit="year"></div>
+            <div class="wheel-col" data-unit="month"></div>
+            <div class="wheel-col" data-unit="day"></div>
+          </div>
         </div>
         <div class="field">
           <label>餵魚間隔（天）</label>
@@ -286,7 +291,12 @@
         <div class="sec-title"><svg class="plant-c" viewBox="0 0 44 50" fill="currentColor"><use href="#plant"/></svg>澆花設定</div>
         <div class="field">
           <label>開始計算日期</label>
-          <input type="date" id="startDateWater">
+          <div class="wheel" id="wheelStartWater">
+            <div class="wheel-band"></div>
+            <div class="wheel-col" data-unit="year"></div>
+            <div class="wheel-col" data-unit="month"></div>
+            <div class="wheel-col" data-unit="day"></div>
+          </div>
         </div>
         <div class="field">
           <label>澆花間隔（天）</label>
@@ -451,25 +461,31 @@
       if (idx >= values.length) idx = values.length - 1;
       return values[idx];
     }
-    function initPickers() {
-      if (pickersReady) return;
-      var now = new Date();
-      ['wheelFish', 'wheelWater'].forEach(function (id) {
-        var w = document.getElementById(id);
-        buildCol(w.querySelector('[data-unit="year"]'), wheelYears, now.getFullYear());
-        buildCol(w.querySelector('[data-unit="month"]'), wheelMonths, now.getMonth() + 1);
-        buildCol(w.querySelector('[data-unit="day"]'), wheelDays, now.getDate());
-      });
-      pickersReady = true;
+    // 把某個 .wheel 容器設定到指定日期
+    function setWheel(wheelEl, dateObj) {
+      buildCol(wheelEl.querySelector('[data-unit="year"]'), wheelYears, dateObj.getFullYear());
+      buildCol(wheelEl.querySelector('[data-unit="month"]'), wheelMonths, dateObj.getMonth() + 1);
+      buildCol(wheelEl.querySelector('[data-unit="day"]'), wheelDays, dateObj.getDate());
     }
-    function pickedDate(type) {
-      var w = document.getElementById(type === 'fish' ? 'wheelFish' : 'wheelWater');
-      var y = readCol(w.querySelector('[data-unit="year"]'), wheelYears);
-      var m = readCol(w.querySelector('[data-unit="month"]'), wheelMonths);
-      var d = readCol(w.querySelector('[data-unit="day"]'), wheelDays);
+    // 讀取某個 .wheel 容器選到的日期，回傳 yyyy-MM-dd
+    function readWheel(wheelEl) {
+      var y = readCol(wheelEl.querySelector('[data-unit="year"]'), wheelYears);
+      var m = readCol(wheelEl.querySelector('[data-unit="month"]'), wheelMonths);
+      var d = readCol(wheelEl.querySelector('[data-unit="day"]'), wheelDays);
       var maxD = new Date(y, m, 0).getDate();  // 該月天數，超過就夾住
       if (d > maxD) d = maxD;
       return fmt(y, m - 1, d);
+    }
+    // 打卡頁兩組滾輪：預設今天（只初始化一次）
+    function initPickers() {
+      if (pickersReady) return;
+      var now = new Date();
+      setWheel(document.getElementById('wheelFish'), now);
+      setWheel(document.getElementById('wheelWater'), now);
+      pickersReady = true;
+    }
+    function pickedDate(type) {
+      return readWheel(document.getElementById(type === 'fish' ? 'wheelFish' : 'wheelWater'));
     }
 
     // ---- 功能一：打卡（type: 'fish' | 'water'）----
@@ -504,16 +520,19 @@
       input.value = v;
     }
     function fillSettings(type) {
-      var dateId = type === 'fish' ? 'startDate' : 'startDateWater';
+      var wheelId = type === 'fish' ? 'wheelStart' : 'wheelStartWater';
       var intId = type === 'fish' ? 'intervalDays' : 'intervalDaysWater';
       api('getSettings', { type: type }).then(function (d) {
         var s = d.settings;
+        var dateObj;
         if (s && s.startDate) {
-          document.getElementById(dateId).value = toYMD(s.startDate);
+          var ymd = toYMD(s.startDate).split('-');
+          dateObj = new Date(+ymd[0], +ymd[1] - 1, +ymd[2]);
           document.getElementById(intId).value = s.intervalDays || 1;
-        } else if (!document.getElementById(dateId).value) {
-          document.getElementById(dateId).value = new Date().toISOString().slice(0, 10);
+        } else {
+          dateObj = new Date();
         }
+        setWheel(document.getElementById(wheelId), dateObj);
       }).catch(function (err) {
         toast('讀取設定失敗：' + err);
       });
@@ -528,12 +547,12 @@
       btn.disabled = true; btn.textContent = '儲存中…';
       var p1 = api('saveSettings', {
         type: 'fish',
-        startDate: document.getElementById('startDate').value,
+        startDate: readWheel(document.getElementById('wheelStart')),
         intervalDays: document.getElementById('intervalDays').value
       });
       var p2 = api('saveSettings', {
         type: 'water',
-        startDate: document.getElementById('startDateWater').value,
+        startDate: readWheel(document.getElementById('wheelStartWater')),
         intervalDays: document.getElementById('intervalDaysWater').value
       });
       Promise.all([p1, p2]).then(function () {
